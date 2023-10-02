@@ -1,3 +1,5 @@
+import json
+
 from jinja2 import StrictUndefined, ChainableUndefined, ChoiceLoader
 
 from .jinja2_utils import MyEnvironment, extract_template_error, RootTemplateLoader, SearchPathAbsLoader, \
@@ -63,20 +65,24 @@ class Jinja2Renderer:
 
         return environment, root_loader
 
-    def render_helper(self, templates, is_string):
+    def render_helper(self, templates, cmd):
         env, root_loader = self.build_env()
 
         result = []
 
         for i, t in enumerate(templates):
             try:
-                if is_string:
-                    t = env.from_string(t)
-                else:
+                if cmd == "render_strings":
+                    t = env.from_string(t).render()
+                elif cmd == "render_files":
                     root_loader.root_template = t
-                    t = env.get_template(t)
+                    t = env.get_template(t).render()
+                elif cmd == "find_variables":
+                    from jinja2 import Environment, meta
+                    ast = Environment().parse(t)
+                    t = json.dumps(list(meta.find_undeclared_variables(ast)))
                 result.append({
-                    "result": t.render()
+                    "result": t
                 })
             except Exception as e:
                 result.append({
@@ -87,7 +93,7 @@ class Jinja2Renderer:
 
     def RenderStrings(self, templates):
         try:
-            return self.render_helper(templates, True)
+            return self.render_helper(templates, "render_strings")
         except Exception as e:
             return [{
                 "error": str(e)
@@ -95,7 +101,15 @@ class Jinja2Renderer:
 
     def RenderFiles(self, templates):
         try:
-            return self.render_helper(templates, False)
+            return self.render_helper(templates, "render_files")
+        except Exception as e:
+            return [{
+                "error": str(e)
+            }] * len(templates)
+
+    def FindVariables(self, templates):
+        try:
+            return self.render_helper(templates, "find_variables")
         except Exception as e:
             return [{
                 "error": str(e)

@@ -18,6 +18,8 @@ def main():
             result = r.RenderStrings(args["templates"])
         elif args["cmd"] == "render-files":
             result = r.RenderFiles(args["templates"])
+        elif args["cmd"] == "find_variables":
+            result = r.FindVariables(args["templates"])
         elif args["cmd"] == "exit":
             break
         else:

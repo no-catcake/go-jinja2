@@ -1,6 +1,7 @@
 package jinja2
 
 import (
+	"encoding/json"
 	"fmt"
 	"github.com/go-git/go-git/v5/plumbing/format/gitignore"
 	"github.com/gobwas/glob"
@@ -123,7 +124,7 @@ func (j *Jinja2) Load(opts ...Jinja2Opt) {
 func (j *Jinja2) RenderStrings(jobs []*RenderJob, opts ...Jinja2Opt) error {
 	pj := <-j.pj
 	defer func() { j.pj <- pj }()
-	return pj.renderHelper(jobs, true, opts)
+	return pj.renderHelper(jobs, "render-strings", opts)
 }
 
 func (j *Jinja2) RenderString(template string, opts ...Jinja2Opt) (string, error) {
@@ -143,7 +144,7 @@ func (j *Jinja2) RenderString(template string, opts ...Jinja2Opt) (string, error
 func (j *Jinja2) RenderFiles(jobs []*RenderJob, opts ...Jinja2Opt) error {
 	pj := <-j.pj
 	defer func() { j.pj <- pj }()
-	return pj.renderHelper(jobs, false, opts)
+	return pj.renderHelper(jobs, "render-files", opts)
 }
 
 func (j *Jinja2) RenderFile(template string, opts ...Jinja2Opt) (string, error) {
@@ -158,6 +159,23 @@ func (j *Jinja2) RenderFile(template string, opts ...Jinja2Opt) (string, error) 
 		return "", jobs[0].Error
 	}
 	return *jobs[0].Result, nil
+}
+
+func (j *Jinja2) FindVariables(template string) (result []string, err error) {
+	jobs := []*RenderJob{{
+		Template: template,
+	}}
+	pj := <-j.pj
+	defer func() { j.pj <- pj }()
+	err = pj.renderHelper(jobs, "find_variables", nil)
+	if err != nil {
+		return nil, err
+	}
+	if jobs[0].Error != nil {
+		return nil, jobs[0].Error
+	}
+	err = json.Unmarshal([]byte(*jobs[0].Result), &result)
+	return result, nil
 }
 
 func (j *Jinja2) getGlob(pattern string) (glob.Glob, error) {

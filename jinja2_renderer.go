@@ -145,12 +145,12 @@ type jinja2Result struct {
 	Error  *string `json:"error,omitempty"`
 }
 
-func (j *pythonJinja2Renderer) renderHelper(jobs []*RenderJob, isString bool, opts []Jinja2Opt) error {
+func (j *pythonJinja2Renderer) renderHelper(jobs []*RenderJob, cmd string, opts []Jinja2Opt) error {
 	var jargs jinja2Args
-	if isString {
-		jargs.Cmd = "render-strings"
-	} else {
-		jargs.Cmd = "render-files"
+	var isString bool
+	jargs.Cmd = cmd
+	if jargs.Cmd == "render-strings" {
+		isString = true
 	}
 
 	jargs.Opts = &jinja2Options{}
@@ -169,7 +169,7 @@ func (j *pythonJinja2Renderer) renderHelper(jobs []*RenderJob, isString bool, op
 
 	for _, job := range jobs {
 		t := job.Template
-		if !isString {
+		if cmd == "render-files" {
 			p, ok := j.resolveAbsolutePath(t, jargs.Opts.SearchDirs)
 			if !ok {
 				job.Error = fmt.Errorf("absolute path of %s could not be resolved", t)
