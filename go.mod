@@ -1,4 +1,4 @@
-module github.com/kluctl/go-jinja2
+module github.com/no-catcake/go-jinja2
 
 go 1.19
 
